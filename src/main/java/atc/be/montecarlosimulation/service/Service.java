@@ -1,17 +1,15 @@
 package atc.be.montecarlosimulation.service;
 
+import atc.be.montecarlosimulation.costant.SCORE;
 import atc.be.montecarlosimulation.model.*;
-import atc.be.montecarlosimulation.request.RankingHandRequest;
-import atc.be.montecarlosimulation.response.DeckCardExtractedResponse;
-import atc.be.montecarlosimulation.response.DeckResponse;
-import atc.be.montecarlosimulation.response.RankingHandResponse;
 import atc.be.montecarlosimulation.utility.PokerUtility;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @org.springframework.stereotype.Service
 @AllArgsConstructor
@@ -22,31 +20,53 @@ public class Service {
 
     public Service(){
         this.deck = new Deck();
-    }
-
-    public ResponseEntity<DeckResponse> getDeck(){
         Deck.shuffleDeck(deck);
-        DeckResponse deckResponse = new DeckResponse(deck, "ok");
-        return ResponseEntity.ok(deckResponse);
     }
 
-    public ResponseEntity<DeckCardExtractedResponse> extractCards(boolean isRiverOrTurn){
-        List<Card> extractedCards = new ArrayList<>();
-        if(isRiverOrTurn){
-            extractedCards.add(Deck.extractCard(this.deck));
-        } else{
-            for(int i = 0; i<3; i++){
-                extractedCards.add(Deck.extractCard(this.deck));
+    public Deck shuffleDeck() {
+        this.deck = new Deck();
+        Deck.shuffleDeck(deck);
+        return this.deck;
+    }
+
+    public GameCards drawCards(int nPlayers, boolean flop, boolean turn, boolean river){
+        GameCards gameCards = new GameCards();
+
+        PlayerCards mainPlayerCards = new PlayerCards();
+        mainPlayerCards.setCards(List.of(PokerUtility.extractCard(deck), PokerUtility.extractCard(deck)));
+        gameCards.setMainPlayerCards(mainPlayerCards);
+
+        TableCards tableCards = new TableCards(new ArrayList<>());
+        if(flop) {
+            tableCards.setCards(IntStream.range(0, 3).mapToObj(i -> PokerUtility.extractCard(deck)).collect(Collectors.toList()));
+            if(turn){
+                tableCards.getCards().add(PokerUtility.extractCard(deck));
+                if(river){
+                    tableCards.getCards().add(PokerUtility.extractCard(deck));
+                }
             }
+        } else {
+            tableCards.setCards(new ArrayList<>());
         }
-        DeckCardExtractedResponse deckResponse = new DeckCardExtractedResponse(deck, extractedCards, "ok");
-        return ResponseEntity.ok(deckResponse);
-    }
+        gameCards.setTableCards(tableCards);
 
-    public ResponseEntity<RankingHandResponse> evaluateRankingHand(RankingHandRequest rankingHandRequest){
-        List<Card> playerHand = PokerUtility.getCardsFromString(rankingHandRequest.getPlayerHand());
-        List<Card> table = PokerUtility.getCardsFromString(rankingHandRequest.getTable());
-        Ranking ranking = PokerUtility.evaluateRankingHand(playerHand, table);
-        return ResponseEntity.ok(new RankingHandResponse(List.of(ranking.getRanking1lvl())));
+        gameCards.setOtherPlayerCards(
+            IntStream.range(0, nPlayers)
+                .mapToObj(player -> List.of(PokerUtility.extractCard(deck), PokerUtility.extractCard(deck)))
+                .map(PlayerCards::new)
+                .collect(Collectors.toList())
+        );
+        return gameCards;
+    }
+    
+    public List<RankingHand> evaluateRankingHand(MontecarloRequest montecarloRequest){
+        List<Card> table;
+        List<RankingHand> rankingHands = new ArrayList<>();
+        for(int nSample = 0; nSample < montecarloRequest.getNSamples(); nSample++){
+            Deck alternateDeck = new Deck(deck);
+            table = PokerUtility.fillTable(montecarloRequest.getTableCards().getCards(), alternateDeck);
+            rankingHands.add(PokerUtility.evaluateRankingHand(montecarloRequest.getMainPlayerCards().getCards(), table));
+        }
+        return rankingHands;
     }
 }

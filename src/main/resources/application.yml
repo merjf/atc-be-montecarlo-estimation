@@ -1,0 +1,5 @@
+spring:
+    application:
+        name: ATC-BE-MONTECARLO-SERVICE
+server:
+    port: 5002

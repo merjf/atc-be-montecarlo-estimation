@@ -5,17 +5,18 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.4</version>
+		<version>3.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.atc.be</groupId>
-	<artifactId>montecarlosimulation</artifactId>
+	<artifactId>atc-be-montecarlosimulation</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>montecarlosimulation</name>
+	<name>atc-be-montecarlo</name>
 	<description>Monte Carlo Simulation</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -29,7 +30,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

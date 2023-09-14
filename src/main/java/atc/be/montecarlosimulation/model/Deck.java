@@ -1,5 +1,7 @@
 package atc.be.montecarlosimulation.model;
 
+import atc.be.montecarlosimulation.costant.RANKINGS;
+import atc.be.montecarlosimulation.costant.SUITS;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -17,11 +19,15 @@ public class Deck {
 
     public Deck(){
         this.cards = new ArrayList<>();
-        for(SUIT suit : SUIT.values()){
-            for (ORDER order : ORDER.values()) {
-                cards.add(new Card(order, suit));
+        for(SUITS suit : SUITS.values()){
+            for (RANKINGS ranking : RANKINGS.values()) {
+                cards.add(new Card(new Suit(suit.getRanking(), suit.getSuit()), new Ranking(ranking.getRanking(), ranking.getCard())));
             }
         }
+    }
+
+    public Deck(Deck originalDeck){
+        this.cards = new ArrayList<>(originalDeck.getCards());
     }
 
     public static void shuffleDeck(Deck deck){

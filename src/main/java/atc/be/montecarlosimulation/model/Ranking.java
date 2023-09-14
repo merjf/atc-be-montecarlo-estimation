@@ -1,12 +1,14 @@
 package atc.be.montecarlosimulation.model;
 
+import atc.be.montecarlosimulation.costant.RANKINGS;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
-import java.util.List;
-
+@AllArgsConstructor
 @Data
 public class Ranking {
-    int ranking1lvl;
-    List<Integer> ranking2lvl;
-    int ranking3lvl;
+    private int value;
+    private String label;
+
 }
+
