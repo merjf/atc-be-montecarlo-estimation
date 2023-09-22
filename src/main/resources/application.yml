@@ -1,5 +1,14 @@
 spring:
     application:
         name: ATC-BE-MONTECARLO-SERVICE
+    data:
+        redis:
+            host: localhost
+            port: 6379
+        mongodb:
+            uri: mongodb+srv://Cluster65589:bV9de2tEaG5k@cluster65589.djopje4.mongodb.net/atc
+#            uri: mongodb+srv://francescomergiotti.25%40gmail.com:GmAiL5%21MRGFNC@cluster65589.djopje4.mongodb.net/atc
+#            mongosh -u Cluster65589 -p bV9de2tEaG5k mongodb+srv://cluster65589.djopje4.mongodb.net
+            database: atc
 server:
     port: 5002

@@ -9,6 +9,5 @@ import lombok.Data;
 public class Ranking {
     private int value;
     private String label;
-
 }
 

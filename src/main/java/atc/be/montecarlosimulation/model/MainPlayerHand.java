@@ -5,8 +5,8 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class RankingHand {
-    private Integer rankingMainPlayer;
+public class MainPlayerHand {
+    private Integer ranking;
     private String score;
-    private List<Card> mainPlayerCards;
+    private List<Card> cards;
 }
