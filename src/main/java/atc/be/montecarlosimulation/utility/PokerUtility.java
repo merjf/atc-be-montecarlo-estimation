@@ -27,8 +27,8 @@ public class PokerUtility {
         return tableCards;
     }
 
-    public static MainPlayerHand evaluateRankingHand(List<Card> playerHand, List<Card> table){
-        MainPlayerHand mainPlayerHand = new MainPlayerHand();
+    public static PlayerHand evaluateRankingHand(List<Card> playerHand, List<Card> table){
+        PlayerHand mainPlayerHand = new PlayerHand();
         List<Card> allCards = new ArrayList<>();
         allCards.addAll(playerHand);
         allCards.addAll(table);
@@ -53,7 +53,7 @@ public class PokerUtility {
         return null;
     }
 
-    private static void getHandRanking(SCORE pokerScore, List<Card> allCards, MainPlayerHand mainPlayerHand){
+    private static void getHandRanking(SCORE pokerScore, List<Card> allCards, PlayerHand playerHand){
         List<Card> allCardsDuplicate = new ArrayList<>(allCards);
         String actualScore = SCORE.NONE.toString();
         int score = SCORE.NONE.getRanking();
@@ -103,8 +103,8 @@ public class PokerUtility {
                 score = -1;
             }
         }
-        mainPlayerHand.setScore(actualScore);
-        mainPlayerHand.setRanking(score);
+        playerHand.setScore(actualScore);
+        playerHand.setRanking(score);
     }
 
     private static int getCommonCardRanking(List<Card> cards, int threshold){

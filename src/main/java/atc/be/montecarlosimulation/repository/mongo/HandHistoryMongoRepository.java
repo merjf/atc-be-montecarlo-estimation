@@ -1,4 +1,4 @@
-package atc.be.montecarlosimulation.repository;
+package atc.be.montecarlosimulation.repository.mongo;
 
 import atc.be.montecarlosimulation.document.HandHistoryMongoDocument;
 import org.springframework.data.mongodb.repository.MongoRepository;

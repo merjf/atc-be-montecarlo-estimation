@@ -1,5 +1,7 @@
-package atc.be.montecarlosimulation.model;
+package atc.be.montecarlosimulation.response;
 
+import atc.be.montecarlosimulation.model.Card;
+import atc.be.montecarlosimulation.model.PlayerCards;
 import lombok.Data;
 
 import java.util.List;

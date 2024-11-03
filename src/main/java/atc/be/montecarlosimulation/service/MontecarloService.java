@@ -1,15 +1,18 @@
 package atc.be.montecarlosimulation.service;
 
-import atc.be.montecarlosimulation.converter.EntityConverter;
+import atc.be.montecarlosimulation.mapper.EntityConverter;
 import atc.be.montecarlosimulation.document.HandHistoryMongoDocument;
 import atc.be.montecarlosimulation.document.HandHistoryRedisDocument;
 import atc.be.montecarlosimulation.model.*;
-import atc.be.montecarlosimulation.repository.HandHistoryMongoRepository;
-import atc.be.montecarlosimulation.repository.HandHistoryRedisRepository;
+import atc.be.montecarlosimulation.repository.mongo.HandHistoryMongoRepository;
+import atc.be.montecarlosimulation.repository.redis.HandHistoryRedisDocumentRepository;
+import atc.be.montecarlosimulation.response.HandEvaluationRequest;
+import atc.be.montecarlosimulation.response.HandEvaluationResponse;
+import atc.be.montecarlosimulation.response.HandHistory;
 import atc.be.montecarlosimulation.utility.PokerUtility;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,11 +22,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @AllArgsConstructor
-@Service
+@Component
 public class MontecarloService {
 
     @Autowired
-    HandHistoryRedisRepository handHistoryRedisRepository;
+    HandHistoryRedisDocumentRepository handHistoryRedisDocumentRepository;
 
     @Autowired
     HandHistoryMongoRepository handHistoryMongoRepository;
@@ -72,62 +75,79 @@ public class MontecarloService {
     }
     
     public HandEvaluationResponse evaluateHand(HandEvaluationRequest handEvaluationRequest){
-        HandHistoryRedisDocument handHistoryRedisDocument = new HandHistoryRedisDocument();
-        handHistoryRedisDocument.initiateLists();
-        handHistoryRedisDocument.setId(UUID.randomUUID().toString());
-        handHistoryRedisDocument.setSamples(handEvaluationRequest.getNSamples());
-        handHistoryRedisDocument.setInitialTableCards(handEvaluationRequest.getTableCards());
         List<Card> table;
-        List<MainPlayerHand> mainPlayerMainPlayerHands = new ArrayList<>(),
-                otherPlayerMainPlayerHands = new ArrayList<>();
+        List<PlayerHand> playerHands = new ArrayList<>(),
+                otherPlayerHands = new ArrayList<>();
+        List<List<Card>> fullTableCards = new ArrayList<>(), initialTableCards = new ArrayList<>();
+        List<List<PlayerCards>> otherPlayersCards = new ArrayList<>();
         int win = 0, lose = 0, spare = 0;
         for(int nSample = 0; nSample < handEvaluationRequest.getNSamples(); nSample++){
             Deck alternateDeck = new Deck(deck);
+
             table = PokerUtility.fillTable(handEvaluationRequest.getTableCards(), alternateDeck);
-            mainPlayerMainPlayerHands.add(PokerUtility.evaluateRankingHand(handEvaluationRequest.getMainPlayerCards().getCards(), table));
-            MainPlayerHand lastMainPlayerMainPlayerHandResult = mainPlayerMainPlayerHands.get(mainPlayerMainPlayerHands.size()-1);
+            playerHands.add(PokerUtility.evaluateRankingHand(handEvaluationRequest.getMainPlayerCards().getCards(), table));
+            PlayerHand lastMainPlayerPlayerHandResult = playerHands.get(playerHands.size()-1);
             List<Integer> results = new ArrayList<>();
+
+            // TODO: generate otherPlayerCards randomly
             for(PlayerCards otherPlayer : handEvaluationRequest.getOtherPlayerCards()){
-                otherPlayerMainPlayerHands.add(PokerUtility.evaluateRankingHand(otherPlayer.getCards(), table));
-                results.add(otherPlayerMainPlayerHands.get(otherPlayerMainPlayerHands.size()-1).getRanking());
-                handHistoryRedisDocument.addOtherPlayerHandItem(otherPlayer);
+                otherPlayerHands.add(PokerUtility.evaluateRankingHand(otherPlayer.getCards(), table));
+                results.add(otherPlayerHands.get(otherPlayerHands.size()-1).getRanking());
             }
-            if(Collections.max(results) < lastMainPlayerMainPlayerHandResult.getRanking()){
+            if(Collections.max(results) < lastMainPlayerPlayerHandResult.getRanking()){
                 win++;
             }
-            if(Collections.max(results).equals(lastMainPlayerMainPlayerHandResult.getRanking())){
+            if(Collections.max(results).equals(lastMainPlayerPlayerHandResult.getRanking())){
                 spare++;
             }
-            if(Collections.max(results) > lastMainPlayerMainPlayerHandResult.getRanking()){
+            if(Collections.max(results) > lastMainPlayerPlayerHandResult.getRanking()){
                 lose++;
             }
-            handHistoryRedisDocument.addMainPlayerHandItem(lastMainPlayerMainPlayerHandResult);
-            handHistoryRedisDocument.setFullTableCards(table);
+
+            fullTableCards.add(table);
+            otherPlayersCards.add(handEvaluationRequest.getOtherPlayerCards());
+            initialTableCards.add(handEvaluationRequest.getTableCards());
         }
         float winRate = (float) (100 * win) / handEvaluationRequest.getNSamples(),
                 loseRate = (float) (100 * lose) / handEvaluationRequest.getNSamples(),
                 spareRate = (float) (100 * spare) / handEvaluationRequest.getNSamples();
-        handHistoryRedisDocument.setWin(winRate);
-        handHistoryRedisDocument.setLose(loseRate);
-        handHistoryRedisDocument.setSpare(spareRate);
-        handHistoryRedisRepository.save(handHistoryRedisDocument);
-        float total = winRate+loseRate+spareRate;
+
+        saveHandHistory(handEvaluationRequest.getNSamples(), initialTableCards,
+                fullTableCards, playerHands, otherPlayersCards, winRate, loseRate, spareRate);
         return new HandEvaluationResponse(winRate, loseRate, spareRate, handEvaluationRequest.getNSamples(), UUID.randomUUID().toString());
     }
 
-    public Iterable<HandHistoryRedisDocument> getLastHandHistory(){
-        long count = handHistoryRedisRepository.count();
-        if(count > 0){
-            Iterable<HandHistoryRedisDocument> handHistoryDocuments = handHistoryRedisRepository.findAll();
-            List<HandHistoryMongoDocument> handHistoryMongoDocuments = new ArrayList<>();
-            handHistoryDocuments.forEach(handHistoryRedisDocument -> handHistoryMongoDocuments.add(EntityConverter.redisToMongoEntity(handHistoryRedisDocument)));
-            handHistoryMongoRepository.saveAll(handHistoryMongoDocuments);
-            return handHistoryDocuments;
-        }
-        return new ArrayList<>();
+    public List<HandHistory> getLastHandHistory(){
+        return handHistoryRedisDocumentRepository.findAll().stream().map(EntityConverter::redisToResponseDTO).toList();
     }
 
     public void deleteAllHandHistoryDocument(){
-        handHistoryRedisRepository.deleteAll();
+        handHistoryRedisDocumentRepository.deleteAll();
+    }
+
+    private void saveHandHistory(int nSamples, List<List<Card>> initialTableCards, List<List<Card>> fullTableCards,
+                                 List<PlayerHand> playerHands, List<List<PlayerCards>> otherPlayersCards,
+                                 float winRate, float loseRate, float spareRate){
+        String ID = UUID.randomUUID().toString();
+        HandHistoryRedisDocument handHistoryRedisDocument = new HandHistoryRedisDocument();
+        handHistoryRedisDocument.setId(ID);
+        handHistoryRedisDocument.setSamples(nSamples);
+        handHistoryRedisDocument.setWin(winRate);
+        handHistoryRedisDocument.setLose(loseRate);
+        handHistoryRedisDocument.setSpare(spareRate);
+        handHistoryRedisDocumentRepository.save(handHistoryRedisDocument);
+
+        HandHistoryMongoDocument handHistoryMongoDocument = new HandHistoryMongoDocument();
+        handHistoryMongoDocument.initiateLists();
+        handHistoryMongoDocument.setId(ID);
+        handHistoryMongoDocument.setSamples(nSamples);
+        handHistoryMongoDocument.setInitialTableCards(initialTableCards);
+        handHistoryMongoDocument.setPlayerHands(playerHands);
+        handHistoryMongoDocument.setOtherPlayerCards(otherPlayersCards);
+        handHistoryMongoDocument.setFullTableCards(fullTableCards);
+        handHistoryMongoDocument.setWin(winRate);
+        handHistoryMongoDocument.setLose(loseRate);
+        handHistoryMongoDocument.setSpare(spareRate);
+        handHistoryMongoRepository.save(handHistoryMongoDocument);
     }
 }

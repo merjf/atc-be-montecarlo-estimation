@@ -1,4 +1,4 @@
-package atc.be.montecarlosimulation.model;
+package atc.be.montecarlosimulation.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

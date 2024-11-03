@@ -3,6 +3,9 @@ package atc.be.montecarlosimulation.controller;
 import atc.be.montecarlosimulation.document.HandHistoryRedisDocument;
 import atc.be.montecarlosimulation.model.*;
 import atc.be.montecarlosimulation.response.BasicResponse;
+import atc.be.montecarlosimulation.response.HandEvaluationRequest;
+import atc.be.montecarlosimulation.response.HandEvaluationResponse;
+import atc.be.montecarlosimulation.response.HandHistory;
 import atc.be.montecarlosimulation.service.MontecarloService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.netflix.discovery.EurekaClient;
@@ -51,7 +54,7 @@ public class MontecarloController {
 
     @GetMapping(path = "/get-last-hands")
     public ResponseEntity<BasicResponse> getLastHands(){
-        Iterable<HandHistoryRedisDocument> handHistoryDocuments = montecarloService.getLastHandHistory();
+        Iterable<HandHistory> handHistoryDocuments = montecarloService.getLastHandHistory();
         if(handHistoryDocuments != null){
             return ResponseEntity.ok(new BasicResponse(handHistoryDocuments, "OK"));
         }
